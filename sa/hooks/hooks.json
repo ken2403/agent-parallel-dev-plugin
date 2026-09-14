@@ -1,5 +1,4 @@
 {
-  "_comment": "sa hooks: language-agnostic. The protected-file guard is the only blocking hook; it refuses edits/writes to secrets.",
   "hooks": {
     "PreToolUse": [
       {
