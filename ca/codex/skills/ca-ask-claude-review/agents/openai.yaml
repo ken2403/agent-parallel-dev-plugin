@@ -1,0 +1,4 @@
+interface:
+  display_name: "ca: Ask Claude to Review"
+  short_description: "Independent Claude review of branch and local changes"
+  default_prompt: "Use $ca-ask-claude-review to review my branch and local changes against the default branch."

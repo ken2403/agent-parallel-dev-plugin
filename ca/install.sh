@@ -3,8 +3,8 @@
 #
 #   ca/install.sh [--codex] [--claude] [--force] [--dry-run] [--check]
 #
-# --codex   Copy both Codex skills into $CODEX_HOME/skills (default ~/.codex/skills),
-#           so Codex discovers $ca-implement-plan and internal $ca-second-opinion.
+# --codex   Copy the Codex skills into $CODEX_HOME/skills (default ~/.codex/skills),
+#           including the standalone Claude-review entry point.
 # --claude  Print how to install the Claude Code plugin (marketplace or --plugin-dir).
 # --force   Overwrite an existing installed skill directory.
 # --dry-run Print planned actions without changing anything.
@@ -17,7 +17,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"            # .../ca
 SKILLS_SRC_ROOT="$HERE/codex/skills"
-SKILL_NAMES=(ca-implement-plan ca-second-opinion)
+SKILL_NAMES=(ca-implement-plan ca-second-opinion ca-ask-claude-review)
 DEST_ROOT="${CODEX_HOME:-$HOME/.codex}/skills"
 
 do_codex=0 do_claude=0 force=0 dry=0 check=0

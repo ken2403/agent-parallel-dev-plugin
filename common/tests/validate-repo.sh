@@ -40,6 +40,7 @@ unexpected_marketplaces="$(
 
 echo "== generated files =="
 bash common/sync.sh --check
+bash ca/sync-peer-review.sh --check
 bash ca/sync-codex-plugin.sh --check
 bash common/tests/run.sh
 

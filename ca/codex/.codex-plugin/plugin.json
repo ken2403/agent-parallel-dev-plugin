@@ -1,7 +1,7 @@
 {
   "name": "ca",
   "version": "0.5.0+codex.20260826185222",
-  "description": "Codex side of the ca loop: implement a milestone plan test-first in an isolated worktree and provide the explicit-only bounded second-opinion skill used by the final dual-model review.",
+  "description": "Ask a fresh Claude session to review branch and local changes, implement a milestone plan test-first in an isolated worktree, and provide the bounded internal second opinion used by ca dual review.",
   "author": {
     "name": "ken2403",
     "url": "https://github.com/ken2403"
@@ -20,8 +20,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "ca (Codex side)",
-    "shortDescription": "Build with checkpoint and dual review",
-    "longDescription": "Implement a milestone-grouped plan test-first in an isolated worktree, pass Claude checkpoint gates, and provide an explicit-only bounded single-agent Codex second opinion for the final dual review before promotion to ready.",
+    "shortDescription": "Peer review and development with Claude",
+    "longDescription": "Request an independent Claude review with no plan or PR required, or implement a milestone plan in an isolated worktree with Claude checkpoints and final review before promotion to ready.",
     "developerName": "ken2403",
     "category": "Productivity",
     "capabilities": [
@@ -29,7 +29,8 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Use $ca-implement-plan to build a saved plan with Claude review rounds."
+      "Use $ca-implement-plan to build a saved plan with Claude review rounds.",
+      "Use $ca-ask-claude-review to review my branch and local changes against the default branch."
     ]
   }
 }
