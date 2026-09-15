@@ -1,6 +1,10 @@
-# ca — Cooperate Agents (Claude × Codex loop)
+# ca — Cooperate Agents (Claude × Codex)
 
 `ca` ships **two co-located plugins** that make Claude and Codex cooperate on one feature, end to end:
+
+For everyday work, use **`/ca:ask-codex-review` in Claude** or
+**`$ca-ask-claude-review` in Codex** to ask the other model for one independent review.
+No plan, PR, or implementation workflow is required. See [Quick peer review](#quick-peer-review).
 
 ```
 Claude  /ca:plan-loop  ──spar with Codex (codex exec)──▶  saved plan
@@ -37,7 +41,7 @@ need network + an authenticated `gh`.
 > fails loudly with guidance if no verdict is produced, so an unreachable reviewer is never mistaken
 > for a real verdict.
 
-Every checkpoint, final, and standalone review uses `gh pr diff`, so it reads the PR's configured
+Every checkpoint, final, and standalone PR review uses `gh pr diff`, so it reads the PR's configured
 base rather than assuming the repository default branch. The current structured review contract
 binds the verdict to the PR and head SHA, but not yet to the base commit SHA; rerun the final review
 if the base advances before promotion or merge.
@@ -51,12 +55,15 @@ ca/
                           #   review-pr + synthesize-review are the review's internal legs:
                           #   the loop and /ca:dual-review invoke them through `claude -p`.
     skills/{plan-loop,implement,review-pr,synthesize-review,dual-review,code-review,merge-pr,resolve-conflicts,clean-worktrees}/
+    skills/ask-codex-review/                # one fresh Codex review of branch + local changes
   codex/                  # Codex plugin ($ca-implement-plan + internal $ca-second-opinion)
     .codex-plugin/plugin.json
     skills/ca-implement-plan/               # human entry workflow + bundled loop scripts
     skills/ca-second-opinion/               # explicit-only bounded internal review instructions
+    skills/ca-ask-claude-review/             # one fresh Claude review of branch + local changes
   install.sh              # install the Codex skill into ~/.codex/skills; print the Claude install
   sync-codex-plugin.sh    # refresh/check the marketplace package mirror
+  sync-peer-review.sh     # refresh/check peer launcher and canonical standards copies
 plugins/ca/               # generated, self-contained Codex marketplace package
 ```
 
@@ -92,7 +99,57 @@ bash ca/install.sh --force
 mirror for the marketplace's required `./plugins/ca` path; `bash ca/sync-codex-plugin.sh --check`
 detects drift. The direct `install.sh` copy remains available for older/non-plugin-aware setups.
 
-## Use
+## Quick peer review
+
+After implementing normally, ask the other model to review:
+
+```text
+# In Claude Code
+/ca:ask-codex-review
+/ca:ask-codex-review Check error handling and test coverage
+
+# In Codex
+$ca-ask-claude-review
+$ca-ask-claude-review 認証とテストの抜けを重点的に確認して
+```
+
+Both skills work from a fresh conversation with no prior implementation context. The reviewer
+discovers purpose from the captured diff, README, related code and tests. Optional user requirements
+or focus are passed without the author's conversation or earlier review verdicts. Each skill carries
+the complete review protocol and generated copies of ca's four review standards: quality, test rigor,
+security, and consistency beyond the diff. The report includes the usual severity, file/line, issue,
+evidence, recommended fix, verification, and limitations. Results are advisory and never promote PRs.
+
+**Scope:** the net diff from the default branch's merge base to current working files, combining
+branch commits, staged/unstaged edits, deletions, and non-ignored untracked files. Staged edits undone
+locally cancel out. The launcher uses cached refs, records the actual base SHA, and accepts `--base`
+when default detection is ambiguous. Fetch beforehand if the cached default branch is stale.
+
+The current files are captured into a private temporary directory and checked for concurrent changes.
+The reviewer reads that fixed copy. The real checkout and index are untouched. Secret-shaped paths,
+review state, binary/large files, symlinks and submodules have explicit omission handling; omitted
+changed files prevent an approve result. The launcher prints the exact scope and artifact path.
+No automatic edits, test execution, PR comments, or repair loop occurs.
+Submodule contents are unsupported and prevent approve. Git LFS and checkout-attribute conversions
+are not run or normalized, so their raw working bytes may produce extra changes or omissions.
+
+Install only the **calling side's skill/plugin**, plus Git, Python 3.9+, and the authenticated
+reviewer CLI. The reviewer does not need an ambient ca installation. Both model adapters require
+network access to their provider; neither requires `gh`. Required isolation flags are checked before
+launch. Codex uses read-only sandboxing and an isolated configuration; Claude uses safe/restricted
+mode and Read/Grep/Glob tools only. A timeout, missing CLI, incompatible version, or invalid result
+is reported as review not performed, with diagnostic artifacts; there is no self-review fallback.
+
+To inspect the packet without calling a model, run the installed skill's
+`scripts/peer-review.py --reviewer claude --repo /absolute/repo --prepare-only`.
+See the [launcher reference](claude/skills/ask-codex-review/references/launcher.md) for controls.
+
+Maintainers: edit the launcher/protocol under `ca/claude/skills/ask-codex-review/`; edit the canonical
+standards in `common/src/skills/code-review/` and run `bash common/sync.sh` first. Then run
+`bash ca/sync-peer-review.sh` and `bash ca/sync-codex-plugin.sh`. CI checks both copies and runs
+`bash ca/tests/peer-review-test.sh` against real temporary Git repositories and fake model processes.
+
+## Implementation loop
 
 1. `bash ca/install.sh && bash ca/install.sh --claude` — install both, restart Codex.
 2. In Claude: `/ca:plan-loop "<your epic>"` → spars with Codex, saves a plan.
@@ -200,7 +257,7 @@ The full implementation loop needs **both** sides installed: the Codex plugin su
 `$ca-implement-plan`; the Claude plugin supplies `/ca:review-pr` and `/ca:synthesize-review`.
 Each dual-review launcher bundles the exact internal `$ca-second-opinion`, so standalone
 `/ca:dual-review` needs a Codex binary but not an ambient Codex-plugin installation.
-`bash ca/install.sh` with no flags installs both Codex skills and prints/checks the Claude side. If you cannot install the Claude plugin globally, set
+`bash ca/install.sh` with no flags installs all Codex skills and prints/checks the Claude side. If you cannot install the Claude plugin globally, set
 `CA_CLAUDE_PLUGIN_DIR` so the review call can load it with `--plugin-dir`.
 
 ## Environment overrides

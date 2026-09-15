@@ -5,6 +5,16 @@ ca/claude/skills/review-pr/SKILL.md	ca review emits the ca_claude_review.v1 cont
 ca/claude/skills/review-pr/references/review-contract.md	ca/claude keeps a portable copy of the review contract for the review skill.
 ca/claude/skills/synthesize-review/references/review-contract.md	ca/claude keeps a portable copy of the review contract for the synthesis skill.
 ca/codex/.codex-plugin/plugin.json	ca/codex is a separate Codex plugin manifest.
+ca/codex/skills/ca-ask-claude-review/SKILL.md	ca owns the standalone peer-review skill; copies are checked by ca/sync-peer-review.sh and ca/sync-codex-plugin.sh.
+ca/codex/skills/ca-ask-claude-review/agents/openai.yaml	ca owns the standalone peer-review skill; copies are checked by ca/sync-peer-review.sh and ca/sync-codex-plugin.sh.
+ca/codex/skills/ca-ask-claude-review/references/launcher.md	ca owns the standalone peer-review skill; copies are checked by ca/sync-peer-review.sh and ca/sync-codex-plugin.sh.
+ca/codex/skills/ca-ask-claude-review/references/reviewer.md	ca owns the standalone peer-review skill; copies are checked by ca/sync-peer-review.sh and ca/sync-codex-plugin.sh.
+ca/codex/skills/ca-ask-claude-review/references/standards.md	ca owns the standalone peer-review skill; copies are checked by ca/sync-peer-review.sh and ca/sync-codex-plugin.sh.
+ca/codex/skills/ca-ask-claude-review/references/standards/code-quality.md	ca owns the standalone peer-review skill; copies are checked by ca/sync-peer-review.sh and ca/sync-codex-plugin.sh.
+ca/codex/skills/ca-ask-claude-review/references/standards/consistency.md	ca owns the standalone peer-review skill; copies are checked by ca/sync-peer-review.sh and ca/sync-codex-plugin.sh.
+ca/codex/skills/ca-ask-claude-review/references/standards/security.md	ca owns the standalone peer-review skill; copies are checked by ca/sync-peer-review.sh and ca/sync-codex-plugin.sh.
+ca/codex/skills/ca-ask-claude-review/references/standards/test-rigor.md	ca owns the standalone peer-review skill; copies are checked by ca/sync-peer-review.sh and ca/sync-codex-plugin.sh.
+ca/codex/skills/ca-ask-claude-review/scripts/peer-review.py	ca owns the standalone peer-review skill; copies are checked by ca/sync-peer-review.sh and ca/sync-codex-plugin.sh.
 ca/codex/skills/ca-implement-plan/SKILL.md	ca/codex is a different tool plugin with its own skill contract.
 ca/codex/skills/ca-implement-plan/agents/openai.yaml	ca/codex agent policy is Codex-specific.
 ca/codex/skills/ca-implement-plan/references/review-contract.md	ca/codex keeps a portable copy of the review contract.

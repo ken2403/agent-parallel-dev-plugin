@@ -129,6 +129,16 @@ tool scans only its own skills.
 
 **Skill best practices (both tools share the SKILL.md open standard)**
 
+- **Quick peer review:** `/ca:ask-codex-review` (Claude) and `$ca-ask-claude-review` (Codex)
+  ask one fresh session of the other model to review the net default-branch merge-base → working-files
+  diff, including non-ignored untracked files. No plan, PR, or prior conversation is required.
+  The calling skill bundles the protocol, launcher, and canonical review standards; no reviewer-side
+  plugin is needed. Reports are advisory and never gate PR promotion. Canonical peer launcher and
+  protocol live in `ca/claude/skills/ask-codex-review`; `bash ca/sync-peer-review.sh` copies them into
+  `ca/codex/skills/ca-ask-claude-review` and bundles standards from generated `ca:code-review` into both.
+  Run `common/sync.sh` before peer sync when standards change, then `ca/sync-codex-plugin.sh`.
+  The `--check` modes and `ca/tests/peer-review-test.sh` enforce copy identity and behavior in CI.
+
 - A skill is a self-contained folder: `SKILL.md` + its own `scripts/` + `references/` (+ `assets/`). Helper scripts live INSIDE the owning skill's `scripts/`, never in a plugin-level `scripts/`.
 - No `README.md` inside a skill folder; human READMEs live at the plugin/repo root.
 - `SKILL.md` body under 5,000 words; push detail to `references/` (progressive disclosure); critical instructions first.

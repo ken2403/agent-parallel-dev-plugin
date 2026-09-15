@@ -16,7 +16,7 @@ grep -q 'ca-second-opinion' "$dry"
 }
 
 CODEX_HOME="$TMP/codex-home" bash "$INSTALL" --codex > "$TMP/install.log"
-for skill_name in ca-implement-plan ca-second-opinion; do
+for skill_name in ca-implement-plan ca-second-opinion ca-ask-claude-review; do
   diff -qr "$ROOT/ca/codex/skills/$skill_name" \
     "$TMP/codex-home/skills/$skill_name" >/dev/null
 done
@@ -59,7 +59,7 @@ set -e
 
 # --force intentionally replaces both stale/colliding destinations and verifies their bytes.
 CODEX_HOME="$TMP/codex-home" bash "$INSTALL" --codex --force > "$TMP/force.log"
-for skill_name in ca-implement-plan ca-second-opinion; do
+for skill_name in ca-implement-plan ca-second-opinion ca-ask-claude-review; do
   diff -qr "$ROOT/ca/codex/skills/$skill_name" \
     "$TMP/codex-home/skills/$skill_name" >/dev/null
 done
