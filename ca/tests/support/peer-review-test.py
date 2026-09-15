@@ -134,6 +134,126 @@ class PeerTests(unittest.TestCase):
         self.assertIn("app.py", self.prepare()[1]["changes"])
         self.assertFalse((self.repo / "FILTER_EXECUTED").exists())
 
+    def test_missing_promisor_blob_never_runs_helper_or_writes_objects(self):
+        blob = self.git("rev-parse", "main:app.py").decode().strip()
+        remote = self.root / "remote.git"
+        subprocess.run(["git", "clone", "--bare", "-q", str(self.repo), str(remote)], check=True)
+        marker = self.root / "helper-executed"
+        helper = self.root / "upload-pack.sh"
+        helper.write_text('#!/bin/sh\ntouch "' + str(marker) + '"\nexec git-upload-pack "$@"\n')
+        helper.chmod(0o755)
+        self.git("remote", "add", "origin", str(remote))
+        self.git("config", "remote.origin.promisor", "true")
+        self.git("config", "extensions.partialClone", "origin")
+        self.git("config", "remote.origin.uploadpack", str(helper))
+        (self.repo / ".git/objects" / blob[:2] / blob[2:]).unlink()
+        before = {str(p.relative_to(self.repo)): p.read_bytes()
+                  for p in (self.repo / ".git/objects").rglob("*") if p.is_file()}
+        self.write("app.py", "new\n")
+        with patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "0"}), self.assertRaises(peer.ReviewError):
+            self.prepare("main")
+        self.assertFalse(marker.exists())
+        after = {str(p.relative_to(self.repo)): p.read_bytes()
+                 for p in (self.repo / ".git/objects").rglob("*") if p.is_file()}
+        self.assertEqual(before, after)
+
+    def test_sparse_checkout_missing_files_are_rejected(self):
+        self.write("visible/a", "visible\n")
+        self.write("hidden/b", "baseline\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "directories")
+        self.git("branch", "-f", "main", "HEAD")
+        self.write("hidden/new.py", "return unknown_name\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "hidden addition")
+        self.git("sparse-checkout", "init", "--cone")
+        self.git("sparse-checkout", "set", "visible")
+        index = (self.repo / ".git/index").read_bytes()
+        with self.assertRaisesRegex(peer.ReviewError, "skip-worktree"):
+            self.prepare()
+        self.assertEqual(index, (self.repo / ".git/index").read_bytes())
+
+    def test_present_skip_worktree_edits_are_still_reviewed(self):
+        self.git("update-index", "--skip-worktree", "app.py")
+        self.write("app.py", "local change\n")
+        self.assertIn("app.py", self.prepare()[1]["changes"])
+
+    def test_file_to_directory_replacement_includes_deletion(self):
+        (self.repo / "app.py").unlink()
+        self.write("app.py/child", "child\n")
+        packet, subject = self.prepare()
+        self.assertEqual(subject["changes"], ["app.py", "app.py/child"])
+        self.assertFalse(subject["omissions"])
+        self.assertIn("-value = 1", (packet / "changes.diff").read_text())
+        self.assertEqual((packet / "snapshot/app.py/child").read_text(), "child\n")
+
+    def test_directory_to_file_replacement_includes_deletion(self):
+        self.write("folder/old", "old content\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "directory")
+        self.git("branch", "-f", "main", "HEAD")
+        (self.repo / "folder/old").unlink()
+        (self.repo / "folder").rmdir()
+        self.write("folder", "replacement\n")
+        packet, subject = self.prepare()
+        self.assertEqual(subject["changes"], ["folder", "folder/old"])
+        self.assertFalse(subject["omissions"])
+        self.assertIn("-old content", (packet / "changes.diff").read_text())
+        self.assertEqual((packet / "snapshot/folder").read_text(), "replacement\n")
+
+    def test_omitted_large_file_mutation_is_rejected(self):
+        self.write("big", "a" * (peer.LIMIT + 1))
+        original = peer.capture
+        calls = []
+        def moving(*args):
+            result = original(*args)
+            calls.append(1)
+            if len(calls) == 1:
+                self.write("big", "b" * (peer.LIMIT + 1))
+            return result
+        with patch.object(peer, "capture", moving), self.assertRaisesRegex(peer.ReviewError, "changed during"):
+            self.prepare()
+
+    def test_omitted_content_changes_snapshot_identity(self):
+        self.write("big", "a" * (peer.LIMIT + 1))
+        first_packet, first = self.prepare()
+        self.write("big", "b" * (peer.LIMIT + 1))
+        second_packet, second = self.prepare()
+        self.assertFalse(first["changes"])
+        self.assertFalse(second["changes"])
+        self.assertEqual(first["omissions"], second["omissions"])
+        self.assertFalse((first_packet / "snapshot/big").exists())
+        self.assertFalse((second_packet / "snapshot/big").exists())
+        self.assertNotEqual(first["snapshot_id"], second["snapshot_id"])
+
+    def test_unhashed_file_metadata_changes_snapshot_identity(self):
+        huge = self.repo / "huge"
+        with huge.open("wb") as handle:
+            handle.truncate(peer.TOTAL_LIMIT + 1)
+        _, first = self.prepare()
+        with huge.open("r+b") as handle:
+            handle.truncate(peer.TOTAL_LIMIT + 2)
+        _, second = self.prepare()
+        self.assertFalse(first["changes"])
+        self.assertEqual(first["omissions"], second["omissions"])
+        self.assertNotEqual(first["snapshot_id"], second["snapshot_id"])
+
+    def test_unhashed_file_mutation_during_capture_is_rejected(self):
+        huge = self.repo / "huge"
+        with huge.open("wb") as handle:
+            handle.truncate(peer.TOTAL_LIMIT + 1)
+        original = peer.capture
+        calls = []
+        def moving(*args):
+            result = original(*args)
+            calls.append(1)
+            if len(calls) == 1:
+                with huge.open("r+b") as handle:
+                    handle.truncate(peer.TOTAL_LIMIT + 2)
+            return result
+        with patch.object(peer, "capture", moving), self.assertRaisesRegex(peer.ReviewError, "changed during"):
+            self.prepare()
+
     def test_raw_comparison_does_not_normalize_checkout_attributes(self):
         self.write(".gitattributes", "app.py text eol=crlf\n")
         self.git("add", ".gitattributes")
@@ -380,6 +500,18 @@ else:
     assert args[args.index('--sandbox') + 1] == 'read-only'
     assert 'approval_policy="never"' in args
     assert pathlib.Path(os.environ['CODEX_HOME']).name == 'codex-home'
+    if MODE.startswith('auth_scope'):
+        auth = pathlib.Path(os.environ['CODEX_HOME']) / 'auth.json'
+        assert pathlib.Path.cwd() not in auth.parents, 'auth must be outside review packet'
+        assert 'FAKE_PEER_AUTH_SENTINEL' in auth.read_text()
+        for parent, dirs, files in os.walk('.', followlinks=True):
+            for name in files:
+                assert b'FAKE_PEER_AUTH_SENTINEL' not in (pathlib.Path(parent) / name).read_bytes()
+        pathlib.Path('runtime-location.txt').write_text(str(auth.parent.parent))
+        if MODE == 'auth_scope_fail':
+            sys.exit(3)
+        if MODE == 'auth_scope_timeout':
+            time.sleep(30)
     pathlib.Path(args[args.index('--output-last-message') + 1]).write_text(json.dumps(result))
 ''' % repr(peer.FEATURES))
         fake.chmod(0o755)
@@ -395,13 +527,34 @@ else:
                 result = peer.invoke(reviewer, packet, 10)
             peer.validate(result, subject)
 
+    def test_codex_auth_is_outside_packet_and_runtime_is_cleaned(self):
+        self.write("app.py", "new\n")
+        source_auth = self.root / "source-auth"
+        source_auth.mkdir()
+        (source_auth / "auth.json").write_text('{"token":"FAKE_PEER_AUTH_SENTINEL"}')
+        for mode in ("auth_scope", "auth_scope_fail", "auth_scope_timeout"):
+            packet, subject = self.prepare()
+            (packet / "reviewer.md").write_text("Read standards.md. Fresh review.")
+            peer.write_json(packet / "schema.json", peer.model_schema())
+            with patch.dict(os.environ, {"CODEX_HOME": str(source_auth), "CODEX_BIN": self.fake_model(mode)}):
+                if mode == "auth_scope":
+                    peer.validate(peer.invoke("codex", packet, 10), subject)
+                else:
+                    with self.assertRaises(peer.ReviewError):
+                        peer.invoke("codex", packet, 1)
+            self.assertFalse(Path((packet / "runtime-location.txt").read_text()).exists())
+            self.assertTrue((source_auth / "auth.json").is_file())
+
     def main_run(self, reviewer="claude", mode="ok", prepare=False):
         self.write("app.py", "new\n")
         packet = Path(tempfile.mkdtemp(dir=self.root))
         argv = [str(SCRIPT), "--repo", str(self.repo), "--reviewer", reviewer]
         if prepare:
             argv.append("--prepare-only")
-        with patch.object(sys, "argv", argv), patch.object(peer.tempfile, "mkdtemp", return_value=str(packet)), \
+        original_mkdtemp = tempfile.mkdtemp
+        def make_temp(*args, **kwargs):
+            return str(packet) if kwargs.get("prefix") == "ca-peer-review-" else original_mkdtemp(*args, **kwargs)
+        with patch.object(sys, "argv", argv), patch.object(peer.tempfile, "mkdtemp", side_effect=make_temp), \
                 patch.dict(os.environ, {reviewer.upper() + "_BIN": self.fake_model(mode)}), \
                 contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             rc = peer.main()
@@ -447,7 +600,7 @@ else:
         packet = Path(tempfile.mkdtemp(dir=self.root))
         with patch.dict(os.environ, {"CLAUDE_BIN": str(self.root / "absent")}):
             with self.assertRaisesRegex(peer.ReviewError, "not found"):
-                peer.launch_command("claude", packet)
+                peer.launch_command("claude", packet, self.root)
         fake = self.fake_model("ok")
         original = peer.run
         def missing_feature(argv, **kwargs):
@@ -456,10 +609,10 @@ else:
             return original(argv, **kwargs)
         with patch.dict(os.environ, {"CODEX_BIN": fake}), patch.object(peer, "run", missing_feature):
             with self.assertRaisesRegex(peer.ReviewError, "missing isolation control"):
-                peer.launch_command("codex", packet)
+                peer.launch_command("codex", packet, self.root)
         with patch.dict(os.environ, {"CLAUDE_BIN": fake}), patch.object(peer, "run", return_value=b""):
             with self.assertRaisesRegex(peer.ReviewError, "unsupported Claude CLI"):
-                peer.launch_command("claude", packet)
+                peer.launch_command("claude", packet, self.root)
 
     def test_failure_and_malformed_output_are_not_reviews(self):
         self.write("app.py", "new\n")

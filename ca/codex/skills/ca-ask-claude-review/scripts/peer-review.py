@@ -39,8 +39,10 @@ def run(argv, cwd=None, env=None):
 def git(repo, *args):
     # No external diff/textconv, optional index refresh, or inherited alternate Git environment.
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    env.update(GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0")
-    return run(["git", "-c", "core.fsmonitor=false", "-C", str(repo), *args], env=env)
+    env.update(GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0", GIT_NO_LAZY_FETCH="1")
+    # The option also makes older Git versions fail before touching the repository, rather
+    # than silently ignoring an unsupported environment variable and starting a lazy fetch.
+    return run(["git", "--no-lazy-fetch", "-c", "core.fsmonitor=false", "-C", str(repo), *args], env=env)
 
 
 def resolve(repo, ref):
@@ -105,6 +107,10 @@ def current_file(repo, name, algorithm="sha1"):
             except FileNotFoundError:
                 return None, None, None, None
             except OSError as error:
+                if error.errno == errno.ENOTDIR:
+                    info = os.stat(part, dir_fd=parent, follow_symlinks=False)
+                    if stat.S_ISREG(info.st_mode):
+                        return None, None, None, None  # Former child path was deleted.
                 if error.errno in (errno.ENOTDIR, errno.ELOOP):
                     return None, None, "symlink or non-directory ancestor", None
                 raise
@@ -116,11 +122,14 @@ def current_file(repo, name, algorithm="sha1"):
             return None, None, None, None
         if stat.S_ISLNK(info.st_mode):
             return "120000", os.fsencode(os.readlink(path.name, dir_fd=parent)), "symlink", None
+        if stat.S_ISDIR(info.st_mode):
+            return None, None, None, None  # Former regular file was replaced by a directory.
         if not stat.S_ISREG(info.st_mode):
             return None, None, "submodule or special file", None
         mode = "100755" if info.st_mode & 0o111 else "100644"
         if info.st_size > TOTAL_LIMIT:
-            return mode, None, "file exceeds 64 MiB hashing limit", None
+            metadata = (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+            return mode, None, "file exceeds 64 MiB hashing limit", "metadata:" + repr(metadata)
         fd = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
         with os.fdopen(fd, "rb") as handle:
             if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
@@ -148,6 +157,8 @@ def capture(repo, base_sha, head):
     index = git(repo, "ls-files", "--stage", "-z")
     if any(entry.split(b"\t", 1)[0].split()[-1] != b"0" for entry in index.split(b"\0") if entry):
         raise ReviewError("unmerged index entries; resolve conflicts before review")
+    flags = git(repo, "ls-files", "-t", "-z")
+    skipped = {os.fsdecode(entry[2:]) for entry in flags.split(b"\0") if entry.startswith(b"S ")}
     tree = {}
     for record in git(repo, "ls-tree", "-r", "-z", base_sha).split(b"\0"):
         if record:
@@ -157,22 +168,25 @@ def capture(repo, base_sha, head):
     tracked = git(repo, "ls-files", "-z").split(b"\0")
     untracked = git(repo, "ls-files", "--others", "--exclude-standard", "-z").split(b"\0")
     names = set(tree) | {os.fsdecode(n) for n in tracked + untracked if n}
-    files, changes, omissions = {}, {}, []
+    files, changes, omissions, fingerprints = {}, {}, [], []
     total = 0
     for name in sorted(names):
         safe_path(name)
         old = tree.get(name)
         algorithm = "sha256" if old and len(old[2]) == 64 else "sha1"
         mode, data, reason, fingerprint = current_file(repo, name, algorithm)
+        if name in skipped and mode is None:
+            raise ReviewError(f"unavailable skip-worktree path {name!r}; expand the sparse checkout before review")
+        if fingerprint is None and data is not None:
+            blob = b"blob " + str(len(data)).encode() + b"\0" + data
+            fingerprint = hashlib.new(algorithm, blob).hexdigest()
+        fingerprints.append((name, mode, reason, fingerprint))
         old_mode = old[0] if old else None
         old_data = None
         # Compare raw blobs ourselves: worktree git diff invokes arbitrary clean filters and
         # can hide assume-unchanged/skip-worktree edits. No repository programs run here.
         changed = bool(reason) or old is not None or data is not None
         if old and old[1] == "blob":
-            if fingerprint is None and data is not None:
-                blob = b"blob " + str(len(data)).encode() + b"\0" + data
-                fingerprint = hashlib.new(algorithm, blob).hexdigest()
             if fingerprint is not None:
                 changed = fingerprint != old[2] or mode != old_mode
         protected = excluded(name)
@@ -211,7 +225,8 @@ def capture(repo, base_sha, head):
             omissions.append({"file": name, "reason": reason})
         elif (mode, data) != (old_mode, old_data):
             changes[name] = (old_mode, old_data, mode, data)
-    state = hashlib.sha256(index + json.dumps(sorted(os.fsdecode(n) for n in untracked if n)).encode()).hexdigest()
+    state = hashlib.sha256(index + flags + json.dumps(fingerprints).encode()
+                           + json.dumps(sorted(os.fsdecode(n) for n in untracked if n)).encode()).hexdigest()
     if resolve(repo, "HEAD") != head:
         raise ReviewError("HEAD changed during capture; retry")
     return files, changes, omissions, state
@@ -230,12 +245,13 @@ def prepare(repo, packet, base, focus):
     captured = capture(root, merge_base, head)
     if captured != capture(root, merge_base, head):
         raise ReviewError("working files or index changed during capture; retry")
-    files, changes, omissions, _ = captured
+    files, changes, omissions, state = captured
     if not changes and not omissions:
         raise ReviewError("no net changes against the default branch merge base")
     snapshot = packet / "snapshot"
     snapshot.mkdir()
     digest = hashlib.sha256()
+    digest.update(state.encode())  # Bind omitted-file fingerprints without exporting their contents.
     digest.update(json.dumps([base_sha, merge_base, head, focus, omissions], sort_keys=True).encode())
     for name, (mode, data) in sorted(files.items()):
         dest = snapshot / name
@@ -342,7 +358,7 @@ def validate(data, subject):
         raise ReviewError("full coverage despite omitted changed files")
 
 
-def launch_command(reviewer, packet):
+def launch_command(reviewer, packet, runtime):
     binary = shutil.which(os.environ.get(reviewer.upper() + "_BIN", reviewer))
     if not binary:
         raise ReviewError(f"{reviewer} CLI not found")
@@ -372,14 +388,16 @@ def launch_command(reviewer, packet):
         for feature in FEATURES:
             if not re.search(r"^" + re.escape(feature) + r"\s", features, re.M):
                 raise ReviewError(f"unsupported Codex CLI: missing isolation control {feature}")
-        isolated = packet / "codex-home"
+        if packet.resolve() == runtime.resolve() or packet.resolve() in runtime.resolve().parents:
+            raise ReviewError("authentication runtime must be outside the review packet")
+        isolated = runtime / "codex-home"
         isolated.mkdir()
         auth = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))) / "auth.json"
         if auth.is_file():
             (isolated / "auth.json").symlink_to(auth.resolve())
         env["CODEX_HOME"] = str(isolated)
         # Child-only home keeps ~/.agents/skills and global instruction discovery out.
-        child_home = packet / "home"
+        child_home = runtime / "home"
         child_home.mkdir()
         env["HOME"] = str(child_home)
         command = [binary, "exec", "--skip-git-repo-check", "--ignore-user-config", "--ignore-rules",
@@ -396,7 +414,13 @@ def launch_command(reviewer, packet):
 
 
 def invoke(reviewer, packet, timeout):
-    command, env = launch_command(reviewer, packet)
+    # Auth and CLI state are disposable siblings, never descendants of the review inputs.
+    with tempfile.TemporaryDirectory(prefix="ca-peer-runtime-", dir=packet.parent) as directory:
+        return invoke_process(reviewer, packet, timeout, Path(directory))
+
+
+def invoke_process(reviewer, packet, timeout, runtime):
+    command, env = launch_command(reviewer, packet, runtime)
     prompt = (packet / "reviewer.md").read_text() + "\nReview this packet at " + json.dumps(str(packet)) + ".\n"
     # Regular log files avoid unbounded RAM buffering. Only bounded tails are reported on failure.
     with (packet / "stdout.log").open("wb") as stdout, (packet / "stderr.log").open("wb") as stderr:

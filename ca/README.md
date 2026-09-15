@@ -130,6 +130,10 @@ The reviewer reads that fixed copy. The real checkout and index are untouched. S
 review state, binary/large files, symlinks and submodules have explicit omission handling; omitted
 changed files prevent an approve result. The launcher prints the exact scope and artifact path.
 No automatic edits, test execution, PR comments, or repair loop occurs.
+Missing sparse-checkout files must be expanded before review; missing partial-clone objects fail
+without automatic fetching. Git must support `--no-lazy-fetch`. File/directory replacements retain
+their deletion and addition patches. Codex authentication and runtime state live outside the input
+packet and are removed after the run; the original credentials are untouched.
 Submodule contents are unsupported and prevent approve. Git LFS and checkout-attribute conversions
 are not run or normalized, so their raw working bytes may produce extra changes or omissions.
 

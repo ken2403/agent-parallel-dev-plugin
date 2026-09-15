@@ -1,6 +1,7 @@
 # Launcher and scope
 
-Requires macOS or Linux, Python 3.9+, Git, and the requested authenticated model CLI. The reviewer does not need
+Requires macOS or Linux, Python 3.9+, Git supporting `--no-lazy-fetch`, and the requested authenticated
+model CLI. Older Git versions fail before repository operations. The reviewer does not need
 the ca plugin or prior session state. The launcher checks required CLI controls before model launch;
 unsupported versions fail with the missing option. It never bypasses sandbox/permission controls.
 
@@ -19,6 +20,10 @@ The current worktree is authoritative: staged and unstaged edits are combined, s
 then undone locally cancels out. Non-ignored untracked files are included. Git's real index, refs,
 worktrees, and checkout are never changed. Unmerged index entries fail with an actionable error.
 The launcher reads files twice and checks HEAD/index state to reject changes during capture.
+Missing `skip-worktree` files (including sparse-excluded files) fail before review; expand the sparse
+checkout first. Present `skip-worktree` files still use their actual local bytes. File/directory
+replacements are represented as ordinary deletions/additions. Missing partial-clone objects also
+fail: every Git call disables lazy fetching, so capture cannot invoke a remote helper or fetch objects.
 
 A unique system temporary directory contains `subject.json`, `changes.diff`, `snapshot/`, bundled
 review standards, logs, `status.json`, and a validated `review.json` on success. Artifacts are private
@@ -44,6 +49,11 @@ and no session persistence. Claude supports default-location OAuth/CLI login, AN
 or CLAUDE_CODE_OAUTH_TOKEN; custom config directories, API gateways, Bedrock and Vertex environment
 configuration are not forwarded by this launcher. Admin-managed policy still
 applies. These controls isolate conversation and tool behavior; they are not a separate OS account.
+Codex HOME and CODEX_HOME live in a separate private temporary directory outside the review packet.
+That runtime directory, including its auth link, is removed on success, failure, timeout, or handled
+interruption. The original authentication file is untouched. Reviewers may inspect only input files,
+bundled standards, and `snapshot/`, never runtime state or logs. Omitted-file fingerprints also
+participate in capture comparison and snapshot identity; files above the hashing limit use metadata.
 No repository test execution is attempted by the reviewer. Tests are assessed from source.
 
 The default timeout is 600 seconds, configurable with `--timeout`. Timeout or interruption kills
@@ -54,3 +64,4 @@ permitted by the invoking environment. `CODEX_BIN` and `CLAUDE_BIN` may select i
 CLI controls were checked against local help and the official
 [Codex CLI reference](https://developers.openai.com/codex/cli/reference/) and
 [Claude Code CLI reference](https://code.claude.com/docs/en/cli-reference).
+Lazy-fetch suppression follows the [Git command reference](https://git-scm.com/docs/git#Documentation/git.txt---no-lazy-fetch).
