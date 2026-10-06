@@ -11,7 +11,7 @@
     {
       "name": "sa",
       "source": "./sa",
-      "description": "Simple Agents for Claude Code — command-free skills + subagents for fast single-feature development: plan, approve, isolate in a worktree, implement, PR — Sonnet build / Opus review",
+      "description": "Simple Agents for Claude Code — command-free skills + subagents for fast single-feature development: plan, approve, isolate in a worktree, implement, PR — Sonnet build and review, Opus only for risky surfaces",
       "category": "workflow",
       "tags": ["simple", "worktree", "subagents", "code-review", "sonnet"]
     },

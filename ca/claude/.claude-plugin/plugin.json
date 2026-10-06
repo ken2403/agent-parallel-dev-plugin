@@ -3,7 +3,7 @@
   "name": "ca",
   "displayName": "Cooperate Agents",
   "description": "Ask a fresh Codex session to review branch and local changes, or run the ca feature loop: plan with Codex, review milestone and final PRs, synthesize findings, and provide gated merge, conflict resolution, and safe worktree cleanup.",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "author": {
     "name": "ken2403"
   },

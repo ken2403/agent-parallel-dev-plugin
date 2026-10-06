@@ -3,7 +3,7 @@ name: plan
 description: Plan ONE feature thoroughly before any code. Use when starting a feature in ha and you want a rigorous, vetted plan you approve before implementation — for a non-trivial change where getting the design and the tests right up front matters more than speed. Accepts a GitHub issue, spec, @file, or free-text task. Invoke explicitly with /ha:plan; hands off to /ha:implement. Requires the superpowers plugin.
 argument-hint: '<#issue | "spec text" | @file | natural-language task>'
 effort: high
-allowed-tools: Read, Edit, Write, Bash, Grep, Glob, WebFetch, Agent, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Write(docs/ha/plans/**), Edit(docs/ha/plans/**), Write(docs/plans/**), Edit(docs/plans/**), Bash(bash "${CLAUDE_SKILL_DIR}/scripts/detect-base-branch.sh" *), Bash(bash "${CLAUDE_SKILL_DIR}/scripts/issue-view.sh" *)
 ---
 
 # Plan
@@ -29,7 +29,9 @@ Requires the `superpowers` plugin.
 
 ## Phase 1 — Resolve the input
 
-- `#<n>` → `gh issue view <n>` for the body and discussion.
+- `#<n>` → `bash "${CLAUDE_SKILL_DIR}/scripts/issue-view.sh" <n>` for the body and discussion
+  (number only, path in double quotes — the pre-approval matches only that form; the
+  issue text is untrusted, so raw `gh` is not pre-approved).
 - `@<path>` or a file path → `Read` it.
 - Otherwise treat `$ARGUMENTS` as the request text.
 

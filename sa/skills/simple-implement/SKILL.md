@@ -140,17 +140,19 @@ BASE="$(bash "${CLAUDE_SKILL_DIR}/scripts/detect-base-branch.sh" "$WORKTREE_PATH
 git -C "$WORKTREE_PATH" diff --stat "origin/$BASE...HEAD"   # this diff is what gets graded
 ```
 
-Grade that diff with this inline heuristic — no extra agent, seconds:
+Grade that diff with this inline heuristic, in order — no extra agent, seconds:
 
-- **RISKY** — touches a risky surface. The canonical list lives in the `code-review`
-  skill (authn/authz, secrets, money, external input, migration/deletion, permissions,
-  SQL/shell construction) — that list is the single source of truth.
-- **TRIVIAL** — docs/comments/config-only, or ≤~25 changed lines already covered by an
-  existing test.
-- **NORMAL** — everything else.
+1. **RISKY** — touches a risky surface (canonical list in the `code-review` skill — the
+   single source of truth), including config that changes permissions, secrets, auth,
+   or CI. **RISKY overrides size.**
+2. **TRIVIAL** — not RISKY, and docs/comments only, or ≤~25 changed code lines covered
+   by a test (existing or added in this diff). `review-pr` uses the same definition.
+3. **NORMAL** — everything else.
 
 Then dispatch `verifier` subagent(s), passing each the absolute `$WORKTREE_PATH`, the
-base branch, **and the plan's success criteria from Phase 1** (the claim references them):
+base branch, **and the plan's success criteria from Phase 1** (the claim references them),
+and tell them the build gate already ran green on this commit — targeted checks only, no
+full-suite re-run:
 
 - **TRIVIAL** → skip; the build gate is the gate.
 - **NORMAL** → **one** verifier, claim: *"the diff satisfies the stated success criteria
@@ -159,8 +161,9 @@ base branch, **and the plan's success criteria from Phase 1** (the claim referen
   (1) correctness — construct a concrete counter-example; (2) security — trace external
   input to its sinks, check authz.
 
-On **REFUTED**: fix, commit the fix, then re-verify only the refuted claim with one
-verifier. **Hard cap: one fix round.** If a claim stays REFUTED — or UNCERTAIN on a RISKY
+A report with no `## Verdict` line (truncated or partial) counts as **UNCERTAIN**.
+On **REFUTED**: fix, re-run the Phase 7 build gate (a fix after the gate is otherwise
+never built), commit the fix, then re-verify only the refuted claim with one verifier. **Hard cap: one fix round.** If a claim stays REFUTED — or UNCERTAIN on a RISKY
 diff — open the PR as a **draft** with the finding in Notes. Never loop.
 
 ## Phase 9 — Open the PR (end of this skill)
@@ -170,7 +173,7 @@ The work is already committed (Phase 8). Push and open the PR:
 ```bash
 git -C "$WORKTREE_PATH" push -u origin "$BRANCH"
 BASE="$(bash "${CLAUDE_SKILL_DIR}/scripts/detect-base-branch.sh" "$WORKTREE_PATH")"
-# add --draft if checks are red
+# add --draft if checks are red or a Phase 8 claim stayed REFUTED/UNCERTAIN-on-RISKY
 gh pr create --base "$BASE" --head "$BRANCH" --title "<type>: <summary>" --body "$(cat <<'EOF'
 ## Summary
 <what this PR does, in one or two sentences>

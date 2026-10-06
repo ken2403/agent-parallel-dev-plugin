@@ -188,6 +188,9 @@ while IFS= read -r copy; do
     || fail "$copy must be byte-identical to $agent_control_master"
 done < <(find plugins/ha/skills -path '*/references/agent-control.md' -type f | sort)
 
+echo "== PR/issue wrapper argument checks =="
+bash common/tests/pr-wrappers-test.sh
+
 echo "== clean-worktrees behavior =="
 bash common/tests/clean-worktrees-test.sh
 

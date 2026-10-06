@@ -18,10 +18,9 @@ purpose:
   opinion that assumes nothing the PR claims. This is where the **full-strength**
   adversarial review lives.
 
-The earlier design ran (b) as a full re-run of (c)'s procedure on the same bytes —
-two identical heavy reviews of one diff. That was recomputation, not thoroughness.
-The fix: (c) carries the weight; (b) is scaled down to the plan's risk grade and
-only adds the refutation angle. Never make (b) a clone of (c).
+(c) carries the weight; (b) is scaled to the plan's risk grade and only adds the
+refutation angle. Never make (b) a clone of (c) — two identical heavy reviews of one
+diff are recomputation, not thoroughness.
 
 ## Risk-scaled rounds
 
@@ -29,15 +28,13 @@ The plan's `analyzer` risk grade governs how much (b) does:
 
 | Risk | Gate |
 |---|---|
-| LOW / isolated | build gate + ONE `verifier` on "correct + no regression". No loop. |
-| MEDIUM | `adversarial-verification`, 1 round; a 2nd round only if round 1 applied fixes. |
-| HIGH | full `adversarial-verification` (≥3 verifiers, distinct lenses, completeness critic), up to `MAX_ROUNDS` (default 2). |
+| LOW / isolated | build gate + ONE `verifier` on "correct + no regression"; a refuted claim is fixed and re-checked once. No panel. |
+| MEDIUM | `adversarial-verification`, 1 round; a 2nd round only if round 1 applied fixes or the critic added claims. |
+| HIGH | full `adversarial-verification` (≥3 verifiers, distinct lenses, completeness critic — all in one wave), at most 2 rounds. |
 
-**Round caps, disambiguated (the two numbers are different loops):** the *outer*
-gate runs at most `MAX_ROUNDS` (default **2**, HIGH only). Each outer round may
-*invoke* `adversarial-verification`, whose own *inner* refutation loop caps at its
-default **3**. So a HIGH-risk worst case is 2 outer × ≤3 inner; LOW/MEDIUM never
-reach that. They are nested, not contradictory.
+**One loop, cap 2, critic in-wave** — never wrap `adversarial-verification` in an outer
+loop. Serial waves, not verifier count, dominate wall-clock; add width, not rounds. A
+fix applied in the last round is unverified residual risk; any FAIL makes the PR a draft.
 
 ## The discipline: match rigor to risk (not "always two rounds")
 

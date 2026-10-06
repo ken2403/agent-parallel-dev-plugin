@@ -51,8 +51,8 @@ only at the end.
            → risk-scaled pre-PR adversarial gate → build gate → PR → STOP
 
 on demand:
-   /ha:review-pr <pr> [--comment]   independent heavyweight review (verifiers +
-                                     adversarial-verification + the 5 code-reviewer dims)
+   /ha:review-pr <pr> [--comment]   independent heavyweight review (one parallel wave of
+                                     risk-scaled refuters + the 5 code-reviewer dims)
      → /ha:apply-feedback <pr>       fix (superpowers:receiving-code-review) + push
    /ha:merge-pr <pr>                 gated merge (no changes requested + green + mergeable)
      → /ha:clean-worktrees           reclaim merged worktrees + branches, safely
@@ -73,8 +73,10 @@ repository default branch. Rerun it if that base branch advances before merge.
 - `implement` — worktree → the per-task loop (`superpowers:subagent-driven-development`) →
   a **risk-scaled pre-PR adversarial gate** (lighter than `review-pr`, scaled to the risk
   grade) → verified build → PR (effort high).
-- `review-pr` — independent review: verifier subagents + `adversarial-verification` + the
-  five code-reviewer dimensions (effort high).
+- `review-pr` — independent review: one parallel wave of `verifier` lenses (correctness,
+  security, consistency; HIGH risk adds edge-case and the completeness critic), then main
+  judges the five code-reviewer dimensions; a second, scoped wave only for unsettled
+  claims (effort high).
 - `apply-feedback` — turn review feedback into committed fixes, with the
   `superpowers:receiving-code-review` discipline (effort high).
 - `merge-pr` — gated merge; inherits `superpowers:finishing-a-development-branch`'s
@@ -101,10 +103,11 @@ subagent-driven-development — `ha` doesn't duplicate them.)
 |---|---|---|
 | Goal | one feature, fast | one feature, thorough |
 | Plan | digests a given plan | design dialogue + **design red-team** + edge-cases→required tests |
-| Implement | subagents → PR (no self-review) | SDD per-task loop **+** risk-scaled pre-PR adversarial gate → PR |
-| Review | code-review + on-demand review-pr | + adversarial-verification + the 5 code-reviewer dimensions |
+| Implement | red-green subagents → light risk-scaled pre-PR check → PR | SDD per-task loop **+** risk-scaled pre-PR adversarial gate → PR |
+| Review | code-review + on-demand review-pr | + risk-scaled refuter wave (completeness critic on HIGH) + the 5 code-reviewer dimensions |
 | Disciplines | inlined, light | **invokes** the `superpowers` disciplines (required dependency) |
 | Effort | graded (medium build, high review) | high across substantive skills |
 
 Both are foreground, single-feature, and need no tmux. `ha` is model-agnostic (inherits your
-session model); `sa` pins Sonnet for the build path and Opus for review/verify.
+session model); `sa` pins Sonnet for build and review, with Opus only on risky surfaces and unsettled claims.
+Both get their speed from **fewer serial subagent waves** rather than weaker checks.

@@ -1,7 +1,6 @@
 ---
 name: code-review
 description: Standards for writing and reviewing code — quality, test rigor, security, and codebase consistency. Use whenever implementing, changing, or reviewing code, or when checking a PR or diff for bugs, missing test coverage, vulnerabilities, missed propagation, or style drift.
-allowed-tools: Read, Grep, Glob, Bash
 ---
 
 # Code review standards
