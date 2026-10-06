@@ -75,7 +75,7 @@ done
 script="$ROOT/ha/skills/plan/scripts/issue-view.sh"
 check_wrapper issue-view.sh "$script"
 run bash "$script" 7
-[ "$status" -eq 0 ] && [ "$(cat "$CALLS")" = "gh issue view 7 --comments" ] || fail "issue-view argv: $(cat "$CALLS")"
+[ "$status" -eq 0 ] && [ "$(cat "$CALLS")" = "gh issue view 7 --json number,title,state,labels,body,comments" ] || fail "issue-view argv: $(cat "$CALLS")"
 ok "issue-view.sh builds exactly the expected command"
 
 echo "pr-wrappers-test: $pass tests passed"
