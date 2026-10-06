@@ -40,7 +40,7 @@ Enumerate the design's load-bearing claims. Use `$ha-adversarial-verification` i
 
 - `LOW`: one read-only verifier for missing requirements and regressions.
 - `MEDIUM`: two independent verifiers for correctness/test rigor and integration/compatibility.
-- `HIGH`: three independent verifiers for correctness, security/abuse, and migration/ordering, then one completeness critic.
+- `HIGH`: three independent verifiers for correctness, security/abuse, and migration/ordering, plus a completeness critic given the claim list — all in one parallel wave.
 
 Subagents return evidence, not edits or replacement plans. Convert every surviving concern into a success criterion, explicit mitigation, or test task.
 
