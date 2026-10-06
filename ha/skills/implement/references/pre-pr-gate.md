@@ -28,7 +28,7 @@ The plan's `analyzer` risk grade governs how much (b) does:
 
 | Risk | Gate |
 |---|---|
-| LOW / isolated | build gate + ONE `verifier` on "correct + no regression". No loop. |
+| LOW / isolated | build gate + ONE `verifier` on "correct + no regression"; a refuted claim is fixed and re-checked once. No panel. |
 | MEDIUM | `adversarial-verification`, 1 round; a 2nd round only if round 1 applied fixes or the critic added claims. |
 | HIGH | full `adversarial-verification` (≥3 verifiers, distinct lenses, completeness critic — all in one wave), at most 2 rounds. |
 

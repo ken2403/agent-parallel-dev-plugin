@@ -173,7 +173,7 @@ The work is already committed (Phase 8). Push and open the PR:
 ```bash
 git -C "$WORKTREE_PATH" push -u origin "$BRANCH"
 BASE="$(bash "${CLAUDE_SKILL_DIR}/scripts/detect-base-branch.sh" "$WORKTREE_PATH")"
-# add --draft if checks are red
+# add --draft if checks are red or a Phase 8 claim stayed REFUTED/UNCERTAIN-on-RISKY
 gh pr create --base "$BASE" --head "$BRANCH" --title "<type>: <summary>" --body "$(cat <<'EOF'
 ## Summary
 <what this PR does, in one or two sentences>

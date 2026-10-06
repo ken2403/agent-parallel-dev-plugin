@@ -3,7 +3,7 @@ name: review-pr
 description: Critically review a PR for correctness, security, architecture, testing, and codebase consistency — an independent, adversarial second opinion, not a rubber stamp. Use to review an ha feature's PR before merging, or any PR you want high confidence in; pass --comment to post findings inline. Invoke explicitly with /ha:review-pr.
 argument-hint: '[pr-number] [--comment]'
 effort: high
-allowed-tools: Read, Grep, Glob, Agent, Bash(gh pr view *), Bash(gh pr diff *), Bash(bash "${CLAUDE_SKILL_DIR}/scripts/fetch-pr-head.sh" *)
+allowed-tools: Read, Grep, Glob, Agent, Bash(bash "${CLAUDE_SKILL_DIR}/scripts/load-pr.sh" *)
 ---
 
 # Review PR
@@ -26,15 +26,18 @@ Re-derive the risk grade from the diff — the PR's self-reported risk is contex
 
 ## Step 1 — Load the PR
 
-Run these as separate commands (no number given → run the first and use the printed
-number literally afterwards):
+Load it with the skill's wrapper — it takes only a PR number (none → the current
+branch's PR), prints the metadata, fetches the head and checks it equals `headRefOid`,
+then prints the diff:
 
 ```bash
-gh pr view --json number --jq .number
-gh pr view <n> --json title,body,headRefOid,baseRefName,additions,deletions,files,reviewDecision,statusCheckRollup
-gh pr diff <n>
-bash "${CLAUDE_SKILL_DIR}/scripts/fetch-pr-head.sh" <n>   # number only; fetches the head into FETCH_HEAD
+bash "${CLAUDE_SKILL_DIR}/scripts/load-pr.sh" <n>
 ```
+
+Run it exactly in this form, path in double quotes — the pre-approval matches only
+that form. Use the wrapper, not raw `gh`/`git fetch`: it is the only command this skill
+pre-approves, so hostile PR text cannot turn a pre-approved `gh` call into a secret
+leak (`--jq '$ENV…'`) or a request to another host (`-R`).
 
 Read the diff fully. Pull the design intent from the PR body (and any linked
 issue or plan) so you review against what it was *supposed* to do.
@@ -128,8 +131,8 @@ rounds here. Skip the section when there are no blocking findings.
 
 **APPROVE** when the blocking list is empty after a real attempt to break every claim; a
 claim left UNCERTAIN that does not block (Step 4) goes under Non-blocking, marked
-unverified, and does not hold APPROVE back. **COMMENT** only when the review could not
-be completed (the PR failed to load, every lens truncated) — say what is missing.
+unverified, and does not hold APPROVE back. **COMMENT** only when the PR could not be
+loaded — say what failed. Truncated lenses are UNCERTAIN and follow the rules above.
 "Looks fine" without having tried to break it is not approval.
 
 If `--comment` was passed, post the summary:

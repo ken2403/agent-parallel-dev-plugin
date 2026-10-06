@@ -100,6 +100,8 @@ is the failure mode this skill exists to prevent.
 ## Cost control
 
 Verification fan-out multiplies tokens. Match rigor to risk: low-risk, isolated
-changes get a single correctness + no-regression pass; reserve the ≥3-verifier,
-multi-lens treatment for changes graded HIGH risk (by the `analyzer`, or by
-`review-pr`'s own grade).
+changes get a single correctness + no-regression pass in `implement`; reserve the
+multi-round, critic-backed treatment for changes graded HIGH risk (by the `analyzer`,
+or by `review-pr`'s own grade). `review-pr` is the exception by design: as the
+independent review it always sends three lenses in one wave, which costs tokens, not
+wall-clock.

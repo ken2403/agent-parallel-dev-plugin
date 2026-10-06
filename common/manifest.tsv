@@ -42,5 +42,5 @@ skill	src/skills/merge-pr/SKILL.md	ca/claude/skills/merge-pr/SKILL.md
 skill	src/skills/code-review/SKILL.md	ha/skills/code-review/SKILL.md
 skill	src/skills/code-review/SKILL.md	sa/skills/code-review/SKILL.md
 skill	src/skills/code-review/SKILL.md	ca/claude/skills/code-review/SKILL.md
-script	src/scripts/fetch-pr-head.sh	sa/skills/review-pr/scripts/fetch-pr-head.sh
-script	src/scripts/fetch-pr-head.sh	ha/skills/review-pr/scripts/fetch-pr-head.sh
+script	src/scripts/load-pr.sh	sa/skills/review-pr/scripts/load-pr.sh
+script	src/scripts/load-pr.sh	ha/skills/review-pr/scripts/load-pr.sh

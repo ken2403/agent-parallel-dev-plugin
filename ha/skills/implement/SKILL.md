@@ -98,7 +98,8 @@ the same bytes are not reviewed twice by the same method. Operate on the full di
 
 - **LOW / isolated** → the build gate (Phase 5) plus ONE `verifier` refuting the
   single claim "this change is correct and introduces no regression." On REFUTED, fix
-  and re-dispatch it once on the fixed claim; still REFUTED is a FAIL. No panel.
+  and re-dispatch it once on the fixed claim; still REFUTED is a FAIL. UNCERTAIN is a
+  FAIL on a risky claim, a note otherwise. No panel.
 - **MEDIUM** → `adversarial-verification` on the central claims, **one** round; a
   second round only if round 1 applied fixes or the critic added claims (a fix can
   introduce a new break). This caller's cap wins over `adversarial-verification`'s
