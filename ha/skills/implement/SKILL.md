@@ -100,14 +100,18 @@ the same bytes are not reviewed twice by the same method. Operate on the full di
   single claim "this change is correct and introduces no regression." No multi-round
   loop, no panel.
 - **MEDIUM** → `adversarial-verification` on the central claims, **one** round; a
-  second round only if round 1 applied fixes (a fix can introduce a new break).
+  second round only if round 1 applied fixes or the critic added claims (a fix can
+  introduce a new break).
 - **HIGH** (analyzer-flagged: a risky surface per the `code-review` canonical list,
   or a broad refactor) → the full `adversarial-verification` treatment — ≥3 `verifier`s
   with distinct lenses + the completeness critic, **in one wave** — at most 2 rounds
   (its own cap; no outer loop around it).
 
-Every wave goes out as a single `Agent` message, and the verifiers are told the build
-gate owns the full test suite — they run targeted checks only.
+Every wave goes out as a single `Agent` message. Verifiers run targeted checks only —
+the full suite is the Phase 5 build gate, which has not run yet. A report with no
+`## Verdict` line counts as UNCERTAIN. Any FAIL (at any grade) — including a fix on a
+risky claim left unverified at the cap — makes the PR a **draft** with the failing
+claims in Notes.
 
 **Evaluate findings before applying them** — a verifier verdict is data, not
 orders (the same `superpowers:receiving-code-review` discipline `apply-feedback`

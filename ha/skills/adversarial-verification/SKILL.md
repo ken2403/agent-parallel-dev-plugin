@@ -26,12 +26,11 @@ fan out cleanly and keep the fan-out predictable.
 Run rounds until the change is clean or you hit the round cap (default **2** —
 round 2 re-checks the fixes, since a fix can surface a second-order problem;
 beyond that, diminishing returns usually mean the change needs rethinking, not
-more rounds). **One round = one wave**: every subagent of a round, the
-completeness critic included, goes out in a single `Agent` message. Serial waves
-are the dominant latency cost of this harness — add parallel width, not rounds.
+more rounds). **One round = one wave** in a single `Agent` message — serial waves
+are this harness's dominant latency cost, so add width, not rounds.
 
-**Review mode** (called from `review-pr`): exactly one wave plus at most one
-scoped follow-up wave for unsettled claims, and **no edits** — skip step 5;
+**Review mode** (`review-pr`): the caller fixes its own panel (the critic only on HIGH),
+runs one wave plus at most one scoped follow-up wave, and makes **no edits** — skip step 4;
 failed claims become blocking findings.
 
 ### 1. Enumerate claims
@@ -47,49 +46,35 @@ List the specific claims the change makes. Typical claims:
 Scale the claim set to the change. A one-line fix needs correctness + no-regression;
 an auth change needs all five.
 
-### 2. Dispatch verifiers + the completeness critic in one wave (refute-oriented)
+### 2. Dispatch one wave: per-claim verifiers + the completeness critic
 
-For each claim, dispatch a `verifier` subagent with a distinct lens, **in
-parallel** (one `Agent` message, multiple calls). Tell each one to *try to break
-the claim* — but a REFUTED verdict must carry a **concrete counter-example or
-failing evidence**; with no evidence either way the verdict is UNCERTAIN, never
-UPHELD (the same rule the `verifier` agent itself states). A panel that rejects
-without evidence manufactures false findings and fix-churn — evidence-gated
-refutation is what keeps the panel's precision. For higher-stakes claims, put
-**3 or more verifiers** on the same claim with different lenses (e.g. correctness,
-edge-cases, security) and take a majority — an odd number breaks ties, and three
-distinct lenses is the smallest panel that catches failure modes a single
-reviewer is blind to. Scale **lens diversity** with the stakes, not raw headcount.
-
-Why parallel + distinct lenses: diverse lenses buy **coverage** — failure modes a
-single lens is blind to. They do not buy statistically independent votes (same-model
-errors correlate), so a majority of verifiers agreeing is not proof; a concrete
-counter-example or failing command is. Ask each verifier to ground its verdict in
-something it ran.
+In **one `Agent` message**, dispatch a `verifier` per claim, each with a distinct lens
+and told to *try to break the claim*. For higher-stakes claims use **3 distinct lenses**
+(e.g. correctness, edge-cases, security) — lens diversity buys coverage, not independent
+votes. In the same message, dispatch the **completeness critic**: a `verifier` whose
+claim is "this claim and lens list is complete" (pass it the list) — REFUTED means a
+requirement not turned into a claim, an untested modality, an unchecked call site, or an
+ignored error path, with evidence.
 
 ### 3. Judge
 
-- A claim **fails** if a verifier returns REFUTED with a concrete counter-example,
-  or if a majority of its verifiers refute it.
-- `UNCERTAIN` with a real gap is treated as a fail for risky claims (auth, data
-  loss, money, external input) — do not ship on "probably fine" there.
+- A report with no `## Verdict` line (truncated or partial) = **UNCERTAIN**.
+- A claim **fails** on a REFUTED that carries a concrete counter-example or failing
+  evidence; a bare REFUTED is UNCERTAIN.
+- UNCERTAIN with a real gap is a fail for risky claims (auth, data loss, money,
+  external input) — do not ship on "probably fine" there.
+- Critic findings become new claims for the next round.
 
-### 4. Completeness critic (same wave as step 2)
+### 4. Fix and repeat
 
-Dispatched alongside the per-claim verifiers — not after them — one more subagent
-asks the inverse question:
-**"What did everyone miss?"** — a requirement not turned into a claim, a modality
-not tested, a call site not checked, an error path ignored. Its findings become
-new claims for the next round (or, in review mode, the scoped follow-up wave).
+For every failed claim, apply the minimal fix (yourself, or a general-purpose
+subagent for a file-disjoint slice), then start a new round — a fix can introduce a
+new break. Stop when a round has no REFUTED/UNCERTAIN and the critic adds nothing, or
+at the round cap.
 
-### 5. Fix and repeat
-
-For every failed claim, apply the minimal fix the verifier specified (yourself,
-or via a general-purpose subagent for a file-disjoint slice), then start a new
-round. Re-verify — a fix can introduce a new break.
-
-Stop when a full round produces no REFUTED/UNCERTAIN verdicts and the
-completeness critic finds nothing new, or when you reach the round cap.
+**At the cap, nothing is re-verified**: a fix applied in the last round, or a critic
+claim it raised, is unverified. Report it as residual risk (PASS-WITH-NOTES at best);
+on a risky claim the result is **FAIL**.
 
 ## Output
 
@@ -116,4 +101,5 @@ is the failure mode this skill exists to prevent.
 
 Verification fan-out multiplies tokens. Match rigor to risk: low-risk, isolated
 changes get a single correctness + no-regression pass; reserve the ≥3-verifier,
-multi-lens treatment for changes the `analyzer` flagged HIGH risk.
+multi-lens treatment for changes graded HIGH risk (by the `analyzer`, or by
+`review-pr`'s own grade).

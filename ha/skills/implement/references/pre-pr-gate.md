@@ -18,10 +18,9 @@ purpose:
   opinion that assumes nothing the PR claims. This is where the **full-strength**
   adversarial review lives.
 
-The earlier design ran (b) as a full re-run of (c)'s procedure on the same bytes —
-two identical heavy reviews of one diff. That was recomputation, not thoroughness.
-The fix: (c) carries the weight; (b) is scaled down to the plan's risk grade and
-only adds the refutation angle. Never make (b) a clone of (c).
+(c) carries the weight; (b) is scaled to the plan's risk grade and only adds the
+refutation angle. Never make (b) a clone of (c) — two identical heavy reviews of one
+diff are recomputation, not thoroughness.
 
 ## Risk-scaled rounds
 
@@ -30,16 +29,12 @@ The plan's `analyzer` risk grade governs how much (b) does:
 | Risk | Gate |
 |---|---|
 | LOW / isolated | build gate + ONE `verifier` on "correct + no regression". No loop. |
-| MEDIUM | `adversarial-verification`, 1 round; a 2nd round only if round 1 applied fixes. |
+| MEDIUM | `adversarial-verification`, 1 round; a 2nd round only if round 1 applied fixes or the critic added claims. |
 | HIGH | full `adversarial-verification` (≥3 verifiers, distinct lenses, completeness critic — all in one wave), at most 2 rounds. |
 
-**One loop, not nested.** Earlier versions wrapped `adversarial-verification` (inner
-cap 3) in an outer `MAX_ROUNDS` loop (2), so a HIGH-risk worst case was six serial
-verifier waves plus critic passes. Serial waves — not verifier count — dominate
-wall-clock, and current models rarely need a third pass to settle a claim. Now there is
-a single loop: `adversarial-verification`'s own cap of 2 (round 2 re-checks the fixes),
-with the completeness critic dispatched alongside the verifiers instead of after them.
-Add parallel width for rigor, never extra rounds.
+**One loop, cap 2, critic in-wave** — never wrap `adversarial-verification` in an outer
+loop. Serial waves, not verifier count, dominate wall-clock; add width, not rounds. A
+fix applied in the last round is unverified residual risk; any FAIL makes the PR a draft.
 
 ## The discipline: match rigor to risk (not "always two rounds")
 

@@ -73,9 +73,10 @@ repository default branch. Rerun it if that base branch advances before merge.
 - `implement` — worktree → the per-task loop (`superpowers:subagent-driven-development`) →
   a **risk-scaled pre-PR adversarial gate** (lighter than `review-pr`, scaled to the risk
   grade) → verified build → PR (effort high).
-- `review-pr` — independent review: one parallel wave of risk-scaled `verifier` lenses (plus
-  the completeness critic on HIGH risk) while main judges the five code-reviewer
-  dimensions; a second, scoped wave only for unsettled claims (effort high).
+- `review-pr` — independent review: one parallel wave of `verifier` lenses (correctness,
+  security, consistency; HIGH risk adds edge-case and the completeness critic), then main
+  judges the five code-reviewer dimensions; a second, scoped wave only for unsettled
+  claims (effort high).
 - `apply-feedback` — turn review feedback into committed fixes, with the
   `superpowers:receiving-code-review` discipline (effort high).
 - `merge-pr` — gated merge; inherits `superpowers:finishing-a-development-branch`'s
@@ -103,7 +104,7 @@ subagent-driven-development — `ha` doesn't duplicate them.)
 | Goal | one feature, fast | one feature, thorough |
 | Plan | digests a given plan | design dialogue + **design red-team** + edge-cases→required tests |
 | Implement | red-green subagents → light risk-scaled pre-PR check → PR | SDD per-task loop **+** risk-scaled pre-PR adversarial gate → PR |
-| Review | code-review + on-demand review-pr | + adversarial-verification + the 5 code-reviewer dimensions |
+| Review | code-review + on-demand review-pr | + risk-scaled refuter wave (completeness critic on HIGH) + the 5 code-reviewer dimensions |
 | Disciplines | inlined, light | **invokes** the `superpowers` disciplines (required dependency) |
 | Effort | graded (medium build, high review) | high across substantive skills |
 

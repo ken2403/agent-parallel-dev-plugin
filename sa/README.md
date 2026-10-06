@@ -3,7 +3,7 @@
 A command-free Claude Code plugin for getting **one simple feature** done fast: hand it a
 plan, approve it, and it isolates a worktree, implements with subagents, and opens a PR.
 Build and review both run on the latest **Sonnet**; accuracy comes from **stacked
-independent cross-checks** — mandatory red-green tests, a risk-scaled pre-PR check, and
+cross-checks that fail in different ways** — mandatory red-green tests, a risk-scaled pre-PR check, and
 mutually blind verifier lenses in one parallel wave at review — with **Opus** only on
 risky surfaces or where a check signals doubt. Small diffs are reviewed inline, with no
 subagent start-up cost. The fast, lightweight counterpart to
@@ -26,7 +26,8 @@ Sonnet, Opus, and Haiku models.
 
 Note on model pins: sa pins model aliases, and a skill's `model` overrides the session
 model **in both directions** — review runs on Sonnet even in an Opus session (the Opus
-look comes from the `deep-verifier` escalation, not the session). If you want reviews on
+look comes from the `deep-verifier` — the security lens on risky surfaces and the
+settler of unresolved claims — not the session). If you want reviews on
 your session's model, use `ha`, which is model-agnostic by design.
 
 ## Why sa
@@ -101,8 +102,8 @@ model everywhere, sa stacks cheap checks that fail in *different* ways — execu
 evidence, distinct lenses, and a different model where it matters:
 mandatory red-green (a test that failed first is mechanical evidence), an objective
 build/test gate, a risk-scaled pre-PR `verifier` pass, and at review mutually blind
-lenses (correctness counter-example, consistency beyond the diff, and — on a risky
-surface — an Opus security input→sink lens) dispatched in **one** parallel wave and
+lenses (correctness counter-example, security input→sink — Opus `deep-verifier` on a
+risky surface — and consistency beyond the diff) dispatched in **one** parallel wave and
 adjudicated with evidence. Wall-clock is set by serial waves, not by how many checks run
 side by side, so sa adds width, not rounds: only an UNCERTAIN blocking claim or
 conflicting verdicts get a second, scoped Opus `deep-verifier` wave, whose verdict is final. The `code-review` standards (security

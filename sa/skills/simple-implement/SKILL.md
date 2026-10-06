@@ -140,14 +140,14 @@ BASE="$(bash "${CLAUDE_SKILL_DIR}/scripts/detect-base-branch.sh" "$WORKTREE_PATH
 git -C "$WORKTREE_PATH" diff --stat "origin/$BASE...HEAD"   # this diff is what gets graded
 ```
 
-Grade that diff with this inline heuristic — no extra agent, seconds:
+Grade that diff with this inline heuristic, in order — no extra agent, seconds:
 
-- **RISKY** — touches a risky surface. The canonical list lives in the `code-review`
-  skill (authn/authz, secrets, money, external input, migration/deletion, permissions,
-  SQL/shell construction) — that list is the single source of truth.
-- **TRIVIAL** — docs/comments/config-only, or ≤~50 changed lines already covered by an
-  existing test.
-- **NORMAL** — everything else.
+1. **RISKY** — touches a risky surface (canonical list in the `code-review` skill — the
+   single source of truth), including config that changes permissions, secrets, auth,
+   or CI. **RISKY overrides size.**
+2. **TRIVIAL** — not RISKY, and docs/comments only, or ≤~25 changed code lines covered
+   by a test (existing or added in this diff). `review-pr` uses the same definition.
+3. **NORMAL** — everything else.
 
 Then dispatch `verifier` subagent(s), passing each the absolute `$WORKTREE_PATH`, the
 base branch, **and the plan's success criteria from Phase 1** (the claim references them),
@@ -160,6 +160,7 @@ and tell them the build gate already ran green — targeted checks only, no full
   (1) correctness — construct a concrete counter-example; (2) security — trace external
   input to its sinks, check authz.
 
+A report with no `## Verdict` line (truncated or partial) counts as **UNCERTAIN**.
 On **REFUTED**: fix, commit the fix, then re-verify only the refuted claim with one
 verifier. **Hard cap: one fix round.** If a claim stays REFUTED — or UNCERTAIN on a RISKY
 diff — open the PR as a **draft** with the finding in Notes. Never loop.
