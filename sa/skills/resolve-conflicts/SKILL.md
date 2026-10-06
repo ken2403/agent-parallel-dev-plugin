@@ -85,7 +85,8 @@ drop either side's intent.
 
 Conflict resolution is exactly where parallel edits silently break each other, and a wrong
 resolution is silent corruption — so this check uses the opus-tier `deep-verifier`, not the
-cheap fan-out `verifier`. Before committing, dispatch a `deep-verifier` subagent against
+cheap fan-out `verifier`. Before committing, dispatch a `deep-verifier` subagent, scoped to the staged merge
+(`diff HEAD` + `status --short` — nothing is committed yet), against
 the claim *"the merge is
 resolved correctly — no hunk lost either side's intent, no conflict markers remain, the
 seams between independently-resolved files are coherent"*. Also confirm no markers survive

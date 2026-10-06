@@ -187,7 +187,7 @@ check_manifest_coverage() {
 
   git -C "$REPO_ROOT" ls-files ha sa ca |
     awk '
-      /\/scripts\/(detect-base-branch|attach-or-create-worktree|merge-check|clean|new-worktree)\.sh$/ { print; next }
+      /\/scripts\/(detect-base-branch|attach-or-create-worktree|merge-check|clean|new-worktree|fetch-pr-head)\.sh$/ { print; next }
       /\/hooks\/guard-protected\.sh$/ { print; next }
       /\/skills\/code-review\/references\/(code-quality|consistency|security|test-rigor)\.md$/ { print; next }
       /\/skills\/[^\/]+\/references\/review-contract\.md$/ { print; next }

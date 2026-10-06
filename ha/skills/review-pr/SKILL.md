@@ -3,7 +3,7 @@ name: review-pr
 description: Critically review a PR for correctness, security, architecture, testing, and codebase consistency — an independent, adversarial second opinion, not a rubber stamp. Use to review an ha feature's PR before merging, or any PR you want high confidence in; pass --comment to post findings inline. Invoke explicitly with /ha:review-pr.
 argument-hint: '[pr-number] [--comment]'
 effort: high
-allowed-tools: Read, Grep, Glob, Agent, Bash(gh pr view *), Bash(gh pr diff *), Bash(git fetch origin pull/*/head)
+allowed-tools: Read, Grep, Glob, Agent, Bash(gh pr view *), Bash(gh pr diff *), Bash(bash "${CLAUDE_SKILL_DIR}/scripts/fetch-pr-head.sh" *)
 ---
 
 # Review PR
@@ -33,7 +33,7 @@ number literally afterwards):
 gh pr view --json number --jq .number
 gh pr view <n> --json title,body,headRefOid,baseRefName,additions,deletions,files,reviewDecision,statusCheckRollup
 gh pr diff <n>
-git fetch origin pull/<n>/head
+bash "${CLAUDE_SKILL_DIR}/scripts/fetch-pr-head.sh" <n>   # number only; fetches the head into FETCH_HEAD
 ```
 
 Read the diff fully. Pull the design intent from the PR body (and any linked
@@ -126,8 +126,11 @@ becomes visible in the assembled whole). Recurring escapes from the same gate
 mean *that* gate's rigor is miscalibrated — tune it there instead of adding
 rounds here. Skip the section when there are no blocking findings.
 
-Only **APPROVE** when the blocking list is empty AND every claim survived
-refutation. "Looks fine" without having tried to break it is not approval.
+**APPROVE** when the blocking list is empty after a real attempt to break every claim; a
+claim left UNCERTAIN that does not block (Step 4) goes under Non-blocking, marked
+unverified, and does not hold APPROVE back. **COMMENT** only when the review could not
+be completed (the PR failed to load, every lens truncated) — say what is missing.
+"Looks fine" without having tried to break it is not approval.
 
 If `--comment` was passed, post the summary:
 

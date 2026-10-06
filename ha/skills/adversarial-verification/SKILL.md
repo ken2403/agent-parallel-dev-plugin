@@ -70,7 +70,7 @@ ignored error path, with evidence.
 For every failed claim, apply the minimal fix (yourself, or a general-purpose
 subagent for a file-disjoint slice), then start a new round — a fix can introduce a
 new break. Stop when a round has no REFUTED/UNCERTAIN and the critic adds nothing, or
-at the round cap.
+at the round cap — a caller's lower cap (e.g. `implement` MEDIUM) wins.
 
 **At the cap, nothing is re-verified**: a fix applied in the last round, or a critic
 claim it raised, is unverified. Report it as residual risk (PASS-WITH-NOTES at best);

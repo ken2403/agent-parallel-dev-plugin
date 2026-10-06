@@ -151,7 +151,8 @@ Grade that diff with this inline heuristic, in order — no extra agent, seconds
 
 Then dispatch `verifier` subagent(s), passing each the absolute `$WORKTREE_PATH`, the
 base branch, **and the plan's success criteria from Phase 1** (the claim references them),
-and tell them the build gate already ran green — targeted checks only, no full-suite re-run:
+and tell them the build gate already ran green on this commit — targeted checks only, no
+full-suite re-run:
 
 - **TRIVIAL** → skip; the build gate is the gate.
 - **NORMAL** → **one** verifier, claim: *"the diff satisfies the stated success criteria
@@ -161,8 +162,8 @@ and tell them the build gate already ran green — targeted checks only, no full
   input to its sinks, check authz.
 
 A report with no `## Verdict` line (truncated or partial) counts as **UNCERTAIN**.
-On **REFUTED**: fix, commit the fix, then re-verify only the refuted claim with one
-verifier. **Hard cap: one fix round.** If a claim stays REFUTED — or UNCERTAIN on a RISKY
+On **REFUTED**: fix, re-run the Phase 7 build gate (a fix after the gate is otherwise
+never built), commit the fix, then re-verify only the refuted claim with one verifier. **Hard cap: one fix round.** If a claim stays REFUTED — or UNCERTAIN on a RISKY
 diff — open the PR as a **draft** with the finding in Notes. Never loop.
 
 ## Phase 9 — Open the PR (end of this skill)

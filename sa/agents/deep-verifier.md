@@ -28,7 +28,8 @@ plus one of:
 - an **absolute worktree root** — review the diff the caller scopes: committed
   work is `git -C "<root>" diff origin/<base>...HEAD` (the caller names the
   base); uncommitted or staged fixes are `git -C "<root>" diff HEAD` **plus**
-  `git -C "<root>" status --short` (untracked files show up nowhere else). A
+  `git -C "<root>" status --short` (untracked files show up nowhere else). If the
+  caller names no scope, review **both** — a fix you never see can't be refuted. A
   `cd` does not persist between your Bash calls; use `git -C` and absolute
   paths. Or:
 - a **PR number + head SHA** — review `gh pr diff <pr>`, and read the code at that

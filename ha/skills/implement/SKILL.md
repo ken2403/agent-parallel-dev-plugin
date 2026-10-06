@@ -97,17 +97,23 @@ the same bytes are not reviewed twice by the same method. Operate on the full di
 `git -C "$WORKTREE_PATH" diff <base>...HEAD`, scaled to the plan's risk grade:
 
 - **LOW / isolated** → the build gate (Phase 5) plus ONE `verifier` refuting the
-  single claim "this change is correct and introduces no regression." No multi-round
-  loop, no panel.
+  single claim "this change is correct and introduces no regression." On REFUTED, fix
+  and re-dispatch it once on the fixed claim; still REFUTED is a FAIL. No panel.
 - **MEDIUM** → `adversarial-verification` on the central claims, **one** round; a
   second round only if round 1 applied fixes or the critic added claims (a fix can
-  introduce a new break).
+  introduce a new break). This caller's cap wins over `adversarial-verification`'s
+  "repeat until clean": an UNCERTAIN with nothing to fix ends the gate — a FAIL on a
+  risky claim, a note otherwise.
 - **HIGH** (analyzer-flagged: a risky surface per the `code-review` canonical list,
   or a broad refactor) → the full `adversarial-verification` treatment — ≥3 `verifier`s
   with distinct lenses + the completeness critic, **in one wave** — at most 2 rounds
   (its own cap; no outer loop around it).
 
-Every wave goes out as a single `Agent` message. Verifiers run targeted checks only —
+Every wave goes out as a single `Agent` message. Give each verifier `$WORKTREE_PATH`
+and the base, and tell it to review **both** the committed range and the uncommitted
+fixes (`diff HEAD` + `status --short`) — Phase 4 fixes stay uncommitted until Phase 6,
+and a round-2 verifier that reads only `<base>...HEAD` re-checks the old code.
+Verifiers run targeted checks only —
 the full suite is the Phase 5 build gate, which has not run yet. A report with no
 `## Verdict` line counts as UNCERTAIN. Any FAIL (at any grade) — including a fix on a
 risky claim left unverified at the cap — makes the PR a **draft** with the failing
@@ -162,7 +168,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
 git -C "$WORKTREE_PATH" push -u origin "$BRANCH"
-# add --draft if checks are red or a high-risk claim is unresolved
+# add --draft if checks are red or the Phase 4 gate reported any FAIL
 gh pr create --head "$BRANCH" --title "<type>: <summary>" --body "$(cat <<'EOF'
 ## Summary
 <what this PR does>

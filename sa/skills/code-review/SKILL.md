@@ -36,9 +36,9 @@ with `Grep`/`Glob` before flagging something as wrong.
 A change is **risky** when it touches: authn/authz/sessions/tokens; crypto/secrets;
 money/billing; external-input parsing (HTTP handlers, deserialization, file uploads);
 data migration/deletion; permissions; or SQL/shell string construction.
-sa's risk-scaled gates (the pre-PR cross-check in `simple-implement`, the escalation
-triggers in `review-pr`) key off this list — other sa skills reference it, never
-re-enumerate it.
+sa's risk-scaled gates (the pre-PR cross-check in `simple-implement`, the RISKY grade
+in `review-pr` that makes the `deep-verifier` its security lens) key off this list —
+other sa skills reference it, never re-enumerate it.
 
 ## How to apply
 

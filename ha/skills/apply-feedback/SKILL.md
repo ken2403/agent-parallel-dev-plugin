@@ -91,7 +91,8 @@ The `code-review` standards auto-activate — a fix must not introduce a new pro
 
 Run the relevant tests/lint/build as `cd "$WORKTREE_PATH" && <cmd>` and capture
 output. For anything that was a correctness or security comment, re-review the
-fixed area with a `verifier` subagent — the whole point of feedback is that the
+fixed area with a `verifier` subagent, scoped to the **uncommitted** fixes
+(`diff HEAD` + `status --short` — Step 6 has not committed them yet) — the whole point of feedback is that the
 first pass missed something, so confirm the fix actually closes it.
 
 ## Step 6 — Update the PR
