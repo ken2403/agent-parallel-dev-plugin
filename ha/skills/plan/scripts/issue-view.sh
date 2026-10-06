@@ -13,4 +13,4 @@ if [ "$#" -ne 1 ] || ! [[ "$1" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
-gh issue view "$1" --comments
+gh issue view "$1" --json number,title,state,labels,body,comments
