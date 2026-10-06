@@ -145,12 +145,13 @@ Grade that diff with this inline heuristic — no extra agent, seconds:
 - **RISKY** — touches a risky surface. The canonical list lives in the `code-review`
   skill (authn/authz, secrets, money, external input, migration/deletion, permissions,
   SQL/shell construction) — that list is the single source of truth.
-- **TRIVIAL** — docs/comments/config-only, or ≤~25 changed lines already covered by an
+- **TRIVIAL** — docs/comments/config-only, or ≤~50 changed lines already covered by an
   existing test.
 - **NORMAL** — everything else.
 
 Then dispatch `verifier` subagent(s), passing each the absolute `$WORKTREE_PATH`, the
-base branch, **and the plan's success criteria from Phase 1** (the claim references them):
+base branch, **and the plan's success criteria from Phase 1** (the claim references them),
+and tell them the build gate already ran green — targeted checks only, no full-suite re-run:
 
 - **TRIVIAL** → skip; the build gate is the gate.
 - **NORMAL** → **one** verifier, claim: *"the diff satisfies the stated success criteria

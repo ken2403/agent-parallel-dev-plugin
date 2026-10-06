@@ -35,7 +35,7 @@ codex plugin add ca@agent-parallel-dev-plugin
 | **`ca`** | **Cooperate Agents** — a Claude×Codex loop shipped as two co-located plugins: draft a milestone-grouped plan sparring with Codex, hand off to Codex to implement milestone by milestone in an isolated worktree (draft PR at the first milestone, Claude checkpoint review between milestones), then the final **dual review** — blind Claude plus a bounded, offline, single-agent Codex second opinion, adjudicated into one verdict (`/ca:dual-review` runs the same thing standalone; ≤2 final rounds) — before it's promoted to ready, then gated-merge and clean up worktrees — the same full lifecycle as `sa`/`ha`, adapted to the cross-tool loop. | Claude: `/plugin install ca@agent-parallel-dev-plugin`; Codex: `codex plugin add ca@agent-parallel-dev-plugin` | [ca/README.md](ca/README.md) |
 
 New to this? Pick **`sa`** for a single feature you want done fast with a quick approval
-gate (Sonnet build, Opus review); reach for **`ha`** when you want that same single feature
+gate (Sonnet build and review, Opus only for risky surfaces); reach for **`ha`** when you want that same single feature
 built thoroughly — a deeper plan gate, layered review loops, and adversarial verification,
 model-agnostic (inherits your session model). All three are foreground and need no tmux.
 The Claude `ha` plugin additionally requires `superpowers`; the Codex `ha` plugin is standalone.

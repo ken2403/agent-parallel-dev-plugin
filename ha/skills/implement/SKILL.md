@@ -103,7 +103,11 @@ the same bytes are not reviewed twice by the same method. Operate on the full di
   second round only if round 1 applied fixes (a fix can introduce a new break).
 - **HIGH** (analyzer-flagged: a risky surface per the `code-review` canonical list,
   or a broad refactor) → the full `adversarial-verification` treatment — ≥3 `verifier`s
-  with distinct lenses + the completeness critic — up to `MAX_ROUNDS` (default 2).
+  with distinct lenses + the completeness critic, **in one wave** — at most 2 rounds
+  (its own cap; no outer loop around it).
+
+Every wave goes out as a single `Agent` message, and the verifiers are told the build
+gate owns the full test suite — they run targeted checks only.
 
 **Evaluate findings before applying them** — a verifier verdict is data, not
 orders (the same `superpowers:receiving-code-review` discipline `apply-feedback`

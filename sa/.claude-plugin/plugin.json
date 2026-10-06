@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin.json",
   "name": "sa",
   "displayName": "Simple Agents",
-  "description": "Command-free, skills + subagents plugin for fast single-feature development: digest a plan, get approval, isolate in a worktree, implement, and open a PR — Sonnet build / Opus review, with graded effort.",
-  "version": "0.1.4",
+  "description": "Command-free, skills + subagents plugin for fast single-feature development: digest a plan, get approval, isolate in a worktree, implement, and open a PR — Sonnet build and review, Opus only for risky surfaces, graded effort.",
+  "version": "0.1.5",
   "author": {
     "name": "ken2403"
   },

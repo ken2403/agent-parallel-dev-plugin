@@ -31,13 +31,15 @@ The plan's `analyzer` risk grade governs how much (b) does:
 |---|---|
 | LOW / isolated | build gate + ONE `verifier` on "correct + no regression". No loop. |
 | MEDIUM | `adversarial-verification`, 1 round; a 2nd round only if round 1 applied fixes. |
-| HIGH | full `adversarial-verification` (≥3 verifiers, distinct lenses, completeness critic), up to `MAX_ROUNDS` (default 2). |
+| HIGH | full `adversarial-verification` (≥3 verifiers, distinct lenses, completeness critic — all in one wave), at most 2 rounds. |
 
-**Round caps, disambiguated (the two numbers are different loops):** the *outer*
-gate runs at most `MAX_ROUNDS` (default **2**, HIGH only). Each outer round may
-*invoke* `adversarial-verification`, whose own *inner* refutation loop caps at its
-default **3**. So a HIGH-risk worst case is 2 outer × ≤3 inner; LOW/MEDIUM never
-reach that. They are nested, not contradictory.
+**One loop, not nested.** Earlier versions wrapped `adversarial-verification` (inner
+cap 3) in an outer `MAX_ROUNDS` loop (2), so a HIGH-risk worst case was six serial
+verifier waves plus critic passes. Serial waves — not verifier count — dominate
+wall-clock, and current models rarely need a third pass to settle a claim. Now there is
+a single loop: `adversarial-verification`'s own cap of 2 (round 2 re-checks the fixes),
+with the completeness critic dispatched alongside the verifiers instead of after them.
+Add parallel width for rigor, never extra rounds.
 
 ## The discipline: match rigor to risk (not "always two rounds")
 

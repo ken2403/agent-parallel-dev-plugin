@@ -3,7 +3,7 @@ name: plan
 description: Plan ONE feature thoroughly before any code. Use when starting a feature in ha and you want a rigorous, vetted plan you approve before implementation — for a non-trivial change where getting the design and the tests right up front matters more than speed. Accepts a GitHub issue, spec, @file, or free-text task. Invoke explicitly with /ha:plan; hands off to /ha:implement. Requires the superpowers plugin.
 argument-hint: '<#issue | "spec text" | @file | natural-language task>'
 effort: high
-allowed-tools: Read, Edit, Write, Bash, Grep, Glob, WebFetch, Agent, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Bash(gh issue view *), Bash(git rev-parse *), Bash(git status *), Bash(git log *)
 ---
 
 # Plan
