@@ -23,13 +23,13 @@ Omitting a boundary is not permission. Prefer raw plan/diff/test artifacts over 
 ## Concurrency
 
 - Writers: exactly one active writer for a worktree. Wait before starting another.
-- Read-only agents: parallelize only disjoint exploration or independent review lenses, normally at most three at once.
+- Read-only agents: parallelize only disjoint exploration or independent review lenses, at most four at once (three lenses plus an in-wave completeness critic). Start a round's reviewers together; serial waves, not width, set wall-clock.
 - Never let reviewers edit. Never review while a writer is still changing the target SHA/diff.
 - Main integrates all outputs and verifies consequential claims itself.
 
 ## Freshness and failure
 
-Use a fresh subagent per task or review lens. A timeout, tool failure, missing evidence, or malformed result is not approval. Retry once with a narrower prompt; then mark `UNCERTAIN` and stop when the caller's gate requires certainty.
+Use a fresh subagent per task or review lens. A timeout, tool failure, missing evidence, or malformed result is not approval. Do not re-run the panel: when the gate needs that claim settled, retry once, scoped to that claim alone; then mark `UNCERTAIN` and stop when the caller's gate requires certainty.
 
 ## Reviewer output
 

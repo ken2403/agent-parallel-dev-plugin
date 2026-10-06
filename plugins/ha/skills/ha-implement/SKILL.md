@@ -52,7 +52,9 @@ Review `git -C "$WORKTREE_PATH" diff <base>...HEAD` as an assembled system using
 
 - `LOW`: one refutation-oriented read-only reviewer; one round.
 - `MEDIUM`: two distinct reviewers plus completeness check; a second round only after fixes.
-- `HIGH`: three distinct reviewers plus completeness critic; maximum two fix/review rounds.
+- `HIGH`: three distinct reviewers plus completeness critic, in one wave; maximum two fix/review rounds.
+
+Each round is one parallel wave. Reviewers see both the committed range and uncommitted fixes (`diff HEAD` plus `status --short`), so a round-2 reviewer re-checks the fix, not the old code. A missing or malformed verdict is `UNCERTAIN`.
 
 A finding is actionable only with concrete evidence. `UNCERTAIN` blocks risky surfaces until evidence or a human decision resolves it. Apply verified fixes with one writer at a time and repeat the affected checks.
 
